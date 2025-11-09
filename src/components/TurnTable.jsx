@@ -97,15 +97,29 @@ export default function TurnTable({ turno, dayName }) {
         </div>
       )}
 
-      <div className="flex flex-col space-y-3">
+      {/* Layout a colonna centrata, blocchi compatti e responsivi */}
+      <div className="flex flex-col items-center w-full">
         {roles.map((role) => (
           <div
             key={role.id}
-            className="flex justify-between items-center bg-white/50 rounded-xl p-3 shadow-sm hover:shadow-md transition"
+            className="
+              w-full max-w-[340px] mx-auto mb-3
+              bg-white/60 backdrop-blur-lg rounded-2xl shadow-sm border border-white/20
+              p-2 transition hover:shadow-md
+              flex flex-col min-[450px]:flex-row min-[450px]:items-center min-[450px]:justify-between
+            "
           >
-            <span className="font-medium text-gray-700">{role.code}</span>
+            <span className="font-bold text-sm text-[#1E293B] text-left mb-2 min-[450px]:mb-0">
+              {role.code}
+            </span>
             <select
-              className="w-full text-[14px] min-h-[38px] rounded-[10px] px-3 py-2 border border-gray-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700"
+              className="
+                w-full min-[450px]:w-[58%]
+                text-sm h-8 rounded-[10px] px-2 py-1
+                border border-gray-300 bg-white
+                text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none
+                hover:shadow-sm transition duration-200
+              "
               value={assignments[role.id] || ""}
               onChange={(e) => handleChange(role.id, e.target.value)}
             >
@@ -113,11 +127,13 @@ export default function TurnTable({ turno, dayName }) {
               {workers.map((worker) => {
                 const isAlreadySelected = Object.values(assignments).includes(worker.id);
                 const isCurrentSelection = assignments[role.id] === worker.id;
+                const isAssigned = isAlreadySelected && !isCurrentSelection;
                 return (
                   <option
                     key={worker.id}
                     value={worker.id}
                     disabled={isAlreadySelected && !isCurrentSelection}
+                    className={`${isAssigned ? 'text-red-600' : 'text-slate-900'}`}
                   >
                     {worker.name}
                   </option>

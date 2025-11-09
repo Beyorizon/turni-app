@@ -12,13 +12,6 @@ export default function BottomNavbar() {
       shadow-[0_-4px_30px_rgba(0,0,0,0.05)]
       flex justify-around items-center h-16
     ">
-      <button
-        onClick={() => navigate(-1)}
-        className="flex flex-col items-center text-gray-700 hover:scale-[1.1] transition-all"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span className="text-xs">Indietro</span>
-      </button>
 
       <Link
         to="/"
@@ -27,6 +20,14 @@ export default function BottomNavbar() {
         <Home className="w-5 h-5" />
         <span className="text-xs">Home</span>
       </Link>
+
+      <button
+        onClick={() => navigate(-1)}
+        className="flex flex-col items-center text-gray-700 hover:scale-[1.1] transition-all"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span className="text-xs">Indietro</span>
+      </button>
     </nav>
   )
 }
