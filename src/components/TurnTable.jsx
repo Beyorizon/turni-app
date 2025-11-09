@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { Listbox } from "@headlessui/react";
 
 export default function TurnTable({ turno, dayName }) {
   const [assignments, setAssignments] = useState({});
@@ -97,51 +98,72 @@ export default function TurnTable({ turno, dayName }) {
         </div>
       )}
 
-      {/* Layout a colonna centrata, blocchi compatti e responsivi */}
+      {/* Layout colonna centrata, righe compatte e responsive */}
       <div className="flex flex-col items-center w-full">
-        {roles.map((role) => (
-          <div
-            key={role.id}
-            className="
-              w-full max-w-[340px] mx-auto mb-3
-              bg-white/60 backdrop-blur-lg rounded-2xl shadow-sm border border-white/20
-              p-2 transition hover:shadow-md
-              flex flex-col min-[450px]:flex-row min-[450px]:items-center min-[450px]:justify-between
-            "
-          >
-            <span className="font-bold text-sm text-[#1E293B] text-left mb-2 min-[450px]:mb-0">
-              {role.code}
-            </span>
-            <select
-              className="
-                w-full min-[450px]:w-[58%]
-                text-sm h-8 rounded-[10px] px-2 py-1
-                border border-gray-300 bg-white
-                text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none
-                hover:shadow-sm transition duration-200
-              "
-              value={assignments[role.id] || ""}
-              onChange={(e) => handleChange(role.id, e.target.value)}
+        {roles.map((role) => {
+          const selectedWorkerId = assignments[role.id] || "";
+          const selectedWorker = workers.find((w) => w.id === selectedWorkerId);
+          const selectedLabel = selectedWorker?.name || "-- Seleziona --";
+
+          return (
+            <div
+              key={role.id}
+              className="w-full max-w-[340px] mb-2 flex items-center justify-between gap-3"
             >
-              <option value="">-- Seleziona --</option>
-              {workers.map((worker) => {
-                const isAlreadySelected = Object.values(assignments).includes(worker.id);
-                const isCurrentSelection = assignments[role.id] === worker.id;
-                const isAssigned = isAlreadySelected && !isCurrentSelection;
-                return (
-                  <option
-                    key={worker.id}
-                    value={worker.id}
-                    disabled={isAlreadySelected && !isCurrentSelection}
-                    className={`${isAssigned ? 'text-red-600' : 'text-slate-900'}`}
+              <span className="font-medium text-slate-700 text-sm w-1/3 min-w-[80px] whitespace-nowrap">
+                {role.code}
+              </span>
+
+              <Listbox
+                value={selectedWorkerId}
+                onChange={(val) => handleChange(role.id, val)}
+              >
+                <div className="relative w-2/3">
+                  <Listbox.Button
+                    className="
+                      w-full h-8 rounded-xl border border-slate-200 p-1 text-sm
+                      text-slate-900 bg-white hover:shadow-sm transition duration-200
+                      focus:ring-2 focus:ring-blue-500 focus:outline-none
+                    "
                   >
-                    {worker.name}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-        ))}
+                    {selectedLabel}
+                  </Listbox.Button>
+
+                  <Listbox.Options
+                    className="
+                      absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl
+                      bg-white shadow-lg border border-slate-200 focus:outline-none
+                    "
+                  >
+                    {workers.map((worker) => {
+                      const isAlreadySelected = Object.values(assignments).includes(worker.id);
+                      const isCurrentSelection = assignments[role.id] === worker.id;
+                      const isAssigned = isAlreadySelected && !isCurrentSelection;
+
+                      return (
+                        <Listbox.Option
+                          key={worker.id}
+                          value={worker.id}
+                          disabled={isAssigned}
+                          className={({ active, disabled }) =>
+                            `
+                              cursor-pointer select-none px-3 py-2 text-sm
+                              ${active ? "bg-blue-50" : ""}
+                              ${isAssigned ? "text-red-600" : "text-slate-900"}
+                              ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+                            `
+                          }
+                        >
+                          {worker.name}
+                        </Listbox.Option>
+                      );
+                    })}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@supabase/supabase-js": "^2.80.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
