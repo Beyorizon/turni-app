@@ -1,10 +1,8 @@
 {
   "version": 2,
+  "installCommand": "npm ci --omit=optional --ignore-scripts",
   "buildCommand": "npm run build",
-  "installCommand": "npm ci --no-optional",
   "framework": "vite",
   "outputDirectory": "dist",
-  "routes": [
-    { "src": "/(.*)", "dest": "/" }
-  ]
+  "routes": [{ "src": "/(.*)", "dest": "/" }]
 }
