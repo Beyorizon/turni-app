@@ -53,19 +53,23 @@ export default function TurnTable({ turno, dayName }) {
     loadAssignments();
   }, [dayName, turno]);
 
-  // Salvataggio su Supabase
+  // Salvataggio su Supabase (supporta reset con valore null)
   const handleChange = async (roleId, workerId) => {
-    // Evita doppie assegnazioni nello stesso turno
-    const alreadyAssigned = Object.entries(assignments).find(
-      ([rId, wId]) => wId === workerId && rId !== roleId
-    );
+    // Consenti reset esplicito quando si seleziona l'opzione "-- Seleziona --"
+    const normalizedWorkerId = workerId === "" || workerId === null ? null : workerId;
 
-    if (alreadyAssigned) {
-      alert("Questo lavoratore è già assegnato ad un altro ruolo in questo turno.");
-      return;
+    // Evita doppie assegnazioni nello stesso turno (ignora null)
+    if (normalizedWorkerId) {
+      const alreadyAssigned = Object.entries(assignments).find(
+        ([rId, wId]) => wId === normalizedWorkerId && Number(rId) !== Number(roleId)
+      );
+      if (alreadyAssigned) {
+        alert("Questo lavoratore è già assegnato ad un altro ruolo in questo turno.");
+        return;
+      }
     }
 
-    setAssignments((prev) => ({ ...prev, [roleId]: workerId }));
+    setAssignments((prev) => ({ ...prev, [roleId]: normalizedWorkerId || null }));
 
     const { error } = await supabase
       .from("shifts")
@@ -74,13 +78,13 @@ export default function TurnTable({ turno, dayName }) {
           day: dayName,
           type: turno,
           role_id: roleId,
-          worker_id: workerId,
+          worker_id: normalizedWorkerId, // può essere null per reset
         },
         { onConflict: "day,type,role_id" }
       );
 
     if (!error) {
-      setMessage("✅ Salvato");
+      setMessage(normalizedWorkerId ? "✅ Salvato" : "✅ Assegnazione rimossa");
       setTimeout(() => setMessage(""), 1000);
     } else {
       console.error("Errore nel salvataggio:", error);
@@ -88,12 +92,52 @@ export default function TurnTable({ turno, dayName }) {
     }
   };
 
+  // Pulsante "Reset turno": imposta tutti i worker_id = null per il giorno/turno
+  const [isFading, setIsFading] = useState(false);
+  const handleResetTurn = async () => {
+    const { error } = await supabase
+      .from("shifts")
+      .update({ worker_id: null })
+      .eq("day", dayName)
+      .eq("type", turno);
+
+    if (error) {
+      console.error("Errore reset turno:", error);
+      setMessage("❌ Errore nel reset");
+      return;
+    }
+
+    // Aggiorna UI localmente
+    setAssignments({});
+    setMessage("✅ Turno resettato correttamente");
+    setIsFading(false);
+    setTimeout(() => setIsFading(true), 1500);
+    setTimeout(() => {
+      setMessage("");
+      setIsFading(false);
+    }, 2000);
+  };
+
   return (
     <div className="w-full max-w-[380px] mx-auto mt-4 mb-10 p-4 rounded-3xl bg-white/70 backdrop-blur-lg shadow-md border border-white/20">
-      <h2 className="text-lg font-semibold text-gray-700 mb-4">Turno {turno}</h2>
+      {/* Titolo + Reset (responsive) */}
+      <div className="flex flex-col min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between mb-4">
+        <h2 className="font-semibold text-lg text-slate-800">Turno {turno}</h2>
+        <button
+          onClick={handleResetTurn}
+          className="text-red-600 text-sm font-medium hover:text-red-700 transition-all mt-2 min-[480px]:mt-0"
+        >
+          Reset turno
+        </button>
+      </div>
 
+      {/* Messaggio (fade-out) */}
       {message && (
-        <div className="text-center text-sm text-green-600 font-medium mb-3 transition-opacity">
+        <div
+          className={`text-center text-sm text-green-600 font-medium mb-3 transition-opacity duration-500 ${
+            isFading ? "opacity-0" : "opacity-100"
+          }`}
+        >
           {message}
         </div>
       )}
@@ -101,23 +145,21 @@ export default function TurnTable({ turno, dayName }) {
       {/* Layout colonna centrata, righe compatte e responsive */}
       <div className="flex flex-col items-center w-full">
         {roles.map((role) => {
-          const selectedWorkerId = assignments[role.id] || "";
+          const selectedWorkerId = assignments[role.id] ?? null;
           const selectedWorker = workers.find((w) => w.id === selectedWorkerId);
           const selectedLabel = selectedWorker?.name || "-- Seleziona --";
 
           return (
             <div
               key={role.id}
-              className="w-full max-w-[340px] mb-2 flex items-center justify-between gap-3"
+              className="flex items-center justify-between gap-3 w-full max-w-[340px] mb-2"
             >
               <span className="font-medium text-slate-700 text-sm w-1/3 min-w-[80px] whitespace-nowrap">
                 {role.code}
               </span>
 
-              <Listbox
-                value={selectedWorkerId}
-                onChange={(val) => handleChange(role.id, val)}
-              >
+              {/* Selettore compatto con Headless UI Listbox */}
+              <Listbox value={selectedWorkerId} onChange={(val) => handleChange(role.id, val)}>
                 <div className="relative w-2/3">
                   <Listbox.Button
                     className="
@@ -135,6 +177,18 @@ export default function TurnTable({ turno, dayName }) {
                       bg-white shadow-lg border border-slate-200 focus:outline-none
                     "
                   >
+                    {/* Opzione di reset (non rossa) */}
+                    <Listbox.Option
+                      value={null}
+                      className={({ active }) =>
+                        `cursor-pointer select-none px-3 py-2 text-sm ${
+                          active ? "bg-blue-50" : ""
+                        } text-slate-700`
+                      }
+                    >
+                      -- Seleziona --
+                    </Listbox.Option>
+
                     {workers.map((worker) => {
                       const isAlreadySelected = Object.values(assignments).includes(worker.id);
                       const isCurrentSelection = assignments[role.id] === worker.id;
